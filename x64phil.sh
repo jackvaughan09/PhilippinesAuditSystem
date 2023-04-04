@@ -4,8 +4,10 @@ if [ ! -d "data/pdf" ]; then
   mkdir -p "data/pdf"
 fi
 if [ ! -d "data/zip" ]; then
-  echo "Please create a folder called 'zip' in /data and add some zip files!"
-  exit
+  mkdir -p "data/zip"
+fi
+if [ ! -d "data/xlsx" ]; then
+  mkdir -p "data/xlsx"
 fi
 docker build -t phil:local -f docker/x64.Dockerfile .
 docker run --name philapp phil:local
