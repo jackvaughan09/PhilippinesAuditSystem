@@ -4,7 +4,7 @@
 # you need.
 # 2. Run this file from debugger
 
-# NOTE: This always runs from root folder "phil"
+# NOTE: This always runs from root folder "PhilippinesAuditSystem"
 # so the paths have to be relative to that dir ^
 
 from datetime import date
@@ -14,7 +14,7 @@ from extract_all import extract_all
 
 
 def get_new_wb_name():
-    return "a"
+    return "test_" + date.today().strftime("%B_%d_%Y")
     # return date.today().strftime("%B %d, %Y")
 
 
