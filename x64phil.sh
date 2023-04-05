@@ -9,7 +9,7 @@ fi
 if [ ! -d "data/xlsx" ]; then
   mkdir -p "data/xlsx"
 fi
-if [ ! -d "data/doc"]; then
+if [ ! -d "data/doc" ]; then
   mkdir -p "data/doc"
 fi
 docker build -t phil:local -f docker/x64.Dockerfile .
