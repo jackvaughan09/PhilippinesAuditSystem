@@ -6,11 +6,12 @@ Author: @jackvaughan09 + @hudnash
 
 import pandas as pd
 import PyPDF2 as p
-from config import CANON_HEADERS
+from config import CANON_HEADERS, TARGET_SENTENCE
 from fuzzywuzzy import fuzz
+from typing import List
 
 
-def good_match(og: str, ref: list[str]):
+def good_match(og: str, ref: List[str]):
     good = ""
     approx = 0
     og = og.lower()
@@ -29,6 +30,7 @@ def find_part3_rng(pdf_url):
     reader = p.PdfReader(pdf_url)
     contains_piii = []
     contains_pv = []
+    target_pg = []
 
     for i, pg in enumerate(reader.pages):
         content = pg.extract_text().lower()
@@ -36,15 +38,37 @@ def find_part3_rng(pdf_url):
             contains_piii.append(str(i))
         if "part iv" in content:
             contains_pv.append(str(i))
+        if [target for target in TARGET_SENTENCE if target in content] == len(
+            TARGET_SENTENCE
+        ):
+            target_pg.append(str(i))
 
-    if len(contains_piii) == 0 or len(contains_pv) == 0:
+    # Worst case: if there is no Part III and no target page, return 0
+    if len(contains_piii) == 0 and len(target_pg) == 0:
         return "0"
 
-    pg_range = "-".join([contains_piii[-1], contains_pv[-1]])
-    return pg_range
+    # if there is no Part III, attempt target page detection
+    # sometimes Part III is not labeled as such, but is still present
+    if len(contains_piii) == 0 and len(target_pg) > 0:
+        return target_pg[-1] + "-end"
+
+    # if there is Part III but no Part IV, return Part III to end
+    if len(contains_pv) == 0:
+        pg_range = contains_piii[-1] + "-end"
+        return pg_range
+
+    # if both Part III and Part IV are present, return Part III to Part IV
+    part_3_start = contains_piii[-1]
+    part_4_start = contains_pv[-1]
+    if int(part_3_start) > int(part_4_start):
+        return contains_piii[-1] + "-end"
+    elif int(part_3_start) < int(part_4_start):
+        return "-".join([contains_piii[-1], contains_pv[-1]])
+    else:
+        return contains_piii[-1] + "-end"
 
 
-def header_match_tables(dfs: list[pd.DataFrame]):
+def header_match_tables(dfs: List[pd.DataFrame]):
     global match
     print("Assigning canon headers to all dataframes...")
     out = []
@@ -65,13 +89,12 @@ def header_match_tables(dfs: list[pd.DataFrame]):
         # inferred rule learned from research:
         # if there are less than 2 matches, then the first row is not a header row.
         # ---------------------------------------------------------------
-
         # check if first row values match target headers
         if len(set(CANON_HEADERS).intersection(set(match_attempt))) > 2:
             # if yes, set the global match to the match_attempt
             match = match_attempt
 
-            # set df columns to match, filter out first row, and append to out
+            # set df columns to match, filter out first row (old headers), and append to out
             df.columns = match
             df = df.iloc[1:]
             out.append(df.astype(str))
