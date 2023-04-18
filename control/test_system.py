@@ -11,6 +11,8 @@ from datetime import date
 import os
 import shutil
 from extract_all import extract_all
+import logging
+from logging_config import setup_logging
 
 
 def get_new_wb_name():
@@ -24,14 +26,19 @@ def mv_to_pdf_folder(di, ndi):
             shutil.move(
                 os.path.join(di, file), os.path.join(ndi, os.path.basename(file))
             )
-            print(file, ndi)
+            logging.info(file, ndi)
 
 
 if __name__ == "__main__":
+    setup_logging()
     data_url = "data/pdf"
     df = extract_all(data_url)
     if not os.path.exists("data/xlsx"):
         os.mkdir("data/xlsx")
-    print("Exporting data to xlsx")
+    logging.info("Exporting data to xlsx")
     df.to_excel("data/xlsx/" + get_new_wb_name() + ".xlsx")
-    print("All done!")
+    logging.info("All done!")
+    logging.info(
+        f"""Extracted observations from {df.source.nunique()} files.
+Total observations: {df.shape[0]}"""
+    )
