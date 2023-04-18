@@ -12,6 +12,8 @@ import os
 import sys
 from datetime import date
 from extract_all import extract_all
+import logging
+from logging_config import setup_logging
 
 
 def get_new_wb_name():
@@ -19,10 +21,11 @@ def get_new_wb_name():
 
 
 if __name__ == "__main__":
+    setup_logging()
     data_url = sys.argv[1]
     df = extract_all(data_url)
     if not os.path.exists("../data/xlsx"):
         os.mkdir("../data/xlsx")
-    print("Exporting data to xlsx")
+    logging.info("Exporting data to xlsx")
     df.to_excel("../data/xlsx/" + get_new_wb_name() + ".xlsx")
-    print("All done!")
+    logging.info("All done!")

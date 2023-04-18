@@ -5,17 +5,19 @@ Author: @jackvaughan09
 import camelot
 import pandas as pd
 from config import CANON_HEADERS
-from extracttools import header_match_tables, find_part3_rng
-from philformat import overflow_repair, phil_format
+from extracttools import extract_cleanup, find_part3_rng
+import logging
+from logging_config import setup_logging
 
 
 def extract(pdf_url):
+    setup_logging()
     pg_rng = find_part3_rng(pdf_url)
     if len(pg_rng) == 0:
-        print("No Part III found. Continuing.")
+        logging.info("No Part III found. Continuing.")
         return pd.DataFrame(columns=CANON_HEADERS)
 
-    print(f"Attempting to read tables from: {pdf_url}" "\nThis might take a while.")
+    logging.info(f"Attempting to read tables from: {pdf_url}")
     dfs = [
         df.df.astype(str)
         for df in camelot.read_pdf(
@@ -28,16 +30,10 @@ def extract(pdf_url):
         )
     ]
     if len(dfs) < 1:
-        print("No tables found. Continuing.")
+        logging.info("No tables found. Continuing.")
         return pd.DataFrame(columns=CANON_HEADERS)
-    print(f"Finished reading {len(dfs)} tables from file {pdf_url}")
-    dfs = header_match_tables(dfs)
-    dfs = phil_format(dfs, pdf_url)
-    try:
-        out = pd.concat(dfs).reset_index(drop=True)
-    except Exception as e:
-        print(f"Error: {e}")
-        return pd.DataFrame(columns=CANON_HEADERS)
-    # one more for good measure.
-    # out = overflow_repair(out)
-    return out
+    logging.info(f"Finished reading {len(dfs)} tables from file {pdf_url}")
+    df = extract_cleanup(dfs)
+    df["source"] = pdf_url.split("/")[-1]
+    df = df.reset_index(drop=True)
+    return df
