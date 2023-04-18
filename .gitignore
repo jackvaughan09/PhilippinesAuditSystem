@@ -13,6 +13,12 @@ extracted/
 tests/.testenv/ I didn't like that noise
 zips
 *extracted*
+
+# Local stuff from Jack
+local_test.sh
+test.sh
+tests/
+
 # Distribution / packaging
 .Python
 build/
