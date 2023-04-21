@@ -63,9 +63,7 @@ def find_part3_rng(pdf_url: str):
             contains_piii.append(str(i))
         if "part iv" in content:
             contains_pv.append(str(i))
-        if [target for target in TARGET_SENTENCE if target in content] == len(
-            TARGET_SENTENCE
-        ):
+        if all([target for target in TARGET_SENTENCE if target in content]):
             target_pg.append(str(i))
 
     # Worst case: if there is no Part III and no target page, return 0
