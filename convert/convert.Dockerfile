@@ -16,7 +16,7 @@ WORKDIR /app
 
 COPY convert/* /app/
 
-# Execute the conversion script
+# Add execution permission to conversion script
 RUN chmod +x convert.sh
 
 # Create command to run on container start
