@@ -14,11 +14,19 @@ tests/.testenv/ I didn't like that noise
 zips
 *extracted*
 pdf/
+images/
 
 # Local stuff from Jack
 local_test.sh
 test.sh
 tests/
+allpdf/
+test_pipeline*
+Function_testing.ipynb
+pipe_data.py
+testresults/
+imgpdfs/
+
 
 # Distribution / packaging
 .Python
