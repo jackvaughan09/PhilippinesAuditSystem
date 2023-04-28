@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.cache
+*.log
+.git
+*.swp
+*.zip
+.Dockerfile
+```
