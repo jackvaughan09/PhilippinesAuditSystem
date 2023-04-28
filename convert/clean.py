@@ -1,4 +1,4 @@
-#!/usr/bin/env python3A
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 CLEAN.PY
@@ -26,7 +26,6 @@ def unzip(zipped, unzipped):
 
 
 def remove_junk(unzipped_dir):
-    # Remove all files that are not .pdf or .docx
     uz_list = [os.path.join(unzipped_dir, f) for f in os.listdir(unzipped_dir)]
     for f in uz_list:
         has_filename_target = any(
@@ -44,8 +43,12 @@ def remove_junk(unzipped_dir):
             rmtree(f)
 
 
+def main(zipped_dir, unzipped_dir):
+    unzip(zipped_dir, unzipped_dir)
+    remove_junk(unzipped_dir)
+
+
 if __name__ == "__main__":
     zipped_dir = sys.argv[1]
     unzipped_dir = sys.argv[2]
-    unzip(zipped_dir, unzipped_dir)
-    remove_junk(unzipped_dir)
+    main(zipped_dir, unzipped_dir)

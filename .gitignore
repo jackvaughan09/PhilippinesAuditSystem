@@ -23,7 +23,7 @@ tests/
 allpdf/
 test_pipeline*
 Function_testing.ipynb
-
+run_logs/
 testresults/
 imgpdfs/
 
