@@ -1,1 +1,0 @@
-Run imagebuilder.sh in the phil dir to rebuild and push the images to docker hub

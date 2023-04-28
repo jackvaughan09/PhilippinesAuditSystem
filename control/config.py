@@ -10,10 +10,11 @@ Created on Sat Aug 27 17:55:03 2022
 
 TARGET_SENTENCE = [
     "status",
-    "implementation",
-    "prior",
     "audit",
+    "implementation",
     "recommendations",
+    "prior",
+    "year",
 ]
 CANON_HEADERS = [
     "audit observation",
