@@ -8,9 +8,8 @@ import camelot
 import warnings
 from typing import List, Tuple
 import re
+import sys
 
-no_table_pages = []
-removed_pages_tracker = []
 warnings.filterwarnings("ignore")
 
 FILENAME_TARGET = ["Status", "Audit"]
@@ -59,16 +58,16 @@ def clean(directory: str) -> None:
             seen.add(filename)
         else:  # duplicate file
             print("duplicate file: " + filename)
-            os.remove(directory + filename)
+            os.remove(os.path.join(directory, filename))
             continue
 
         if any(bad_name in filename for bad_name in BAD_NAMES):
-            os.remove(directory + filename)
+            os.remove(os.path.join(directory, filename))
     print(f"Now there are: {len(os.listdir(directory))} files")
 
 
 def text_normalize(s: str) -> str:
-    s = s.replace("\n", " ")
+    # s = s.replace("\n", " ").replace("’", "'")
     s = re.sub(r"\s+", " ", s)
     s = re.sub(r"([a-z])([A-Z])([a-z])", r"\1 \2\3", s)
     s = re.sub(r"([:,;.])(?!\s)", r"\1 ", s)
@@ -90,106 +89,96 @@ def page_contains_table(
     Returns:
         bool: True if tables are detected, False otherwise.
     """
-    stream_tables = []
-    lattice_tables = []
+    stream_tables = False
+    lattice_tables = False
+    page_num += 1  # camelot is 1-indexed
     try:
-        lattice_tables = camelot.read_pdf(
-            pdf_path, flavor="lattice", pages=str(page_num)
-        )
+        if len(camelot.read_pdf(pdf_path, flavor="lattice", pages=str(page_num))) > 0:
+            return True
+    except IndexError:
+        return False
     except Exception:
         print(f"Error reading file {pdf_path} page {page_num} with lattice flavor")
-        _store_temp_data(
-            reader=None,
-            page=page_num,
-            kind="no_table",
-            title=pdf_path.split("/")[-1],
-            author="",
-        )
         return False
 
     # TODO: skip stream tables for now, they are not as accurate
     # need to remove pages that only have the part 3 thing on it [MOSTLY DONE]
     # and pages that have no text content before trying to apply stream [DONE]
 
-    if len(lattice_tables) == 0 and include_stream:
-        stream_tables = camelot.read_pdf(
-            pdf_path,
-            flavor="stream",
-            pages=str(page_num),
-        )
+    if (not lattice_tables) and (include_stream == True):
+        try:
+            if (
+                len(
+                    camelot.read_pdf(
+                        pdf_path,
+                        flavor="stream",
+                        pages=str(page_num),
+                    )
+                )
+                > 0
+            ):
+                return True
+        except Exception:
+            print(f"Error reading file {pdf_path} page {page_num} with stream flavor")
+            return False
 
-    if len(stream_tables) == 0 and len(lattice_tables) == 0:
-        _store_temp_data(
-            reader=None,
-            page=page_num,
-            kind="no_table",
-            title=pdf_path.split("/")[-1],
-            author="",
-        )
-    return len(stream_tables) > 0 or len(lattice_tables) > 0
+    if not stream_tables and not lattice_tables:
+        return False
 
 
-def sequential_ranges(lst: List[int]) -> List[Tuple[int, int]]:
-    """Convert a list of numbers into a list of tuples representing sequential ranges."""
+def sequential_ranges(lst: List[int]) -> List[range]:
+    if not lst:
+        return []
+
+    lst.sort()  # Make sure the list is sorted
     ranges = []
     start = lst[0]
-    for i in range(1, len(lst)):
-        if lst[i] != lst[i - 1] + 1:
-            ranges.append((start, lst[i - 1]))
-            start = lst[i]
-    ranges.append((start, lst[-1]))
+    end = lst[0]
+    i = 1
+
+    while i < len(lst):  # Use < instead of <= to avoid IndexError
+        if lst[i] - 1 != lst[i - 1]:
+            end = lst[i - 1]  # Set end to the last element of the current range
+            ranges.append(range(start, end + 1))
+            start = lst[i]  # Update start to the new range's first element
+        i += 1
+
+    ranges.append(range(start, lst[-1] + 1))  # Append the last range
+
     return ranges
 
 
 def remove_mostly_blank_pages_from_range(
-    reader: p.PdfReader, page_rng: Tuple[int, int]
-) -> List[Tuple[int, int]]:
+    reader: p.PdfReader, page_rng: range
+) -> List[range]:
     """Remove pages that are mostly blank from a page range.
 
     Args:
         reader (p.PdfFileReader): The PDF reader object for the file.
-        page_rng (Tuple[int, int]): A tuple with the start and end page numbers.
+        page_rng (range): A tuple with the start and end page numbers.
 
     Returns:
-        rng (List[Tuple[int, int]]): A list of tuples with the start and end page numbers.
+        rng (List[range]]): A list of ranges of pages that are not mostly blank.
     """
-
-    rng = range(page_rng[0], page_rng[1] + 1)
-    #
-    mostly_blank = [
-        i
-        for i, page in enumerate(reader.pages)
-        if len(page.extract_text().lower()) < 100
-    ]
-    for i in mostly_blank:
-        _store_temp_data(reader, i, kind="mostly_blank")
-    good_indicies = [i for i in rng if i not in mostly_blank]
-    if len(good_indicies) == 0:
-        return None
-    rng = sequential_ranges(good_indicies)
-    return rng
-
-
-def _store_temp_data(reader, page, kind, title="", author=""):
-    global removed_pages_tracker
-    if reader:
-        try:
-            meta = reader.metadata
-        except Exception:
-            meta = None
-            pass
-    else:
-        meta = None
-    title = meta.get("/Title") if meta else title
-    author = meta.get("/Author") if meta else author
-    removed_pages_tracker.append((title, author, page, kind))
-    return
+    try:
+        mostly_blank = [
+            i
+            for i in page_rng
+            if len(text_normalize(reader.pages[i].extractText()).split(" ")) < 12
+        ]
+        good_indicies = [i for i in page_rng if i not in mostly_blank]
+        if len(good_indicies) == 0:
+            return None
+        page_rng = sequential_ranges(good_indicies)
+    except Exception as e:
+        print(e)
+    return page_rng
 
 
 def detect_range_from_target_page(
     reader: p.PdfReader,
-    start: int = 1,
-) -> List[Tuple[int, int]]:
+    start: int = 0,
+) -> range:
     """Detect the page range of the target page in a PDF file.
 
     Args:
@@ -198,7 +187,7 @@ def detect_range_from_target_page(
         pdf_url (str): The URL (Path) of the PDF file.
 
     Returns:
-        rng (List[Tuple[int, int]]): A list of tuples with the start and end page numbers.
+        rng
     """
     target_start = start
     end = len(reader.pages)
@@ -206,19 +195,18 @@ def detect_range_from_target_page(
         content = text_normalize(page.extract_text())
         if any([target for target in TARGETS if target in content]):
             target_start = i
-            _store_temp_data(reader, i, kind="target")
-            return (target_start, end)
-    return (target_start, end)
+            return range(target_start, end)
+    return range(target_start, end)
 
 
-def find_part3_range(reader: p.PdfReader) -> List[Tuple[int, int]]:
+def find_part3_range(reader: p.PdfReader, pdf_url: str) -> range:
     """
     Heuristic model for locating the page range of Part III in an Audit report.
     Args:
         *reader* (p.PdfReader): PyPDF2 PdfReader object for the PDF file
     Returns:
-        *List[Tuple[int, int]]*: a list representing the page range of Part III
-                                 If no Part III is found, returns None
+        *range*: a range representing the page range of Part III
+                 If no Part III is found, returns None
 
     ### Description:
     - Worst case: if there is no Part III and no target page, return None
@@ -236,12 +224,14 @@ def find_part3_range(reader: p.PdfReader) -> List[Tuple[int, int]]:
         if "part iv" in content:
             contains_piv.append(i)
 
+    end = len(reader.pages)
+
     # Attempt to assign part 3 start and part 4 start
     try:
         part_3_start = int(contains_piii[-1])
-        # When p3 is not the first page, we need to increment by one page
-        # so as not to pick up the cover page
-        if part_3_start > 0:
+        # When p3 is not the first page, we have to figure out if the start contains
+        # a table to decide whether to include it or not
+        if not page_contains_table(pdf_url, part_3_start):
             part_3_start += 1
     except IndexError:
         part_3_start = None
@@ -252,8 +242,6 @@ def find_part3_range(reader: p.PdfReader) -> List[Tuple[int, int]]:
         part_4_start = None
         pass
 
-    end = len(reader.pages)
-
     # Edge case: part 3 starts before page 10 and pdf is longer than 50 pages
     if part_3_start is not None and part_3_start < 10 and end > 50:
         rng = detect_range_from_target_page(reader, part_3_start)
@@ -262,16 +250,16 @@ def find_part3_range(reader: p.PdfReader) -> List[Tuple[int, int]]:
     # Best case scenario: Have p3 and p4:
     if part_3_start is not None and part_4_start is not None:
         # if p4 comes before p3, return p3 to end
-        if int(part_3_start) > int(part_4_start):
-            rng = (part_3_start, end)
+        if part_3_start > part_4_start:
+            rng = range(part_3_start, end)
             return rng
         else:
-            rng = (part_3_start, part_4_start)
+            rng = range(part_3_start, part_4_start)
             return rng
 
     # If only p3 is present, return p3 to end
     if part_3_start is not None and part_4_start is None:
-        rng = (part_3_start, end)
+        rng = range(part_3_start, end)
         return rng
 
     # If no p3 or p4, attempt target page detection
@@ -283,9 +271,19 @@ def find_part3_range(reader: p.PdfReader) -> List[Tuple[int, int]]:
             return None
 
 
-def get_part3_pgs(pdf_dir):
-    REMOVED_PAGES_CUZ_NO_TABLES = []
-    pgs = []
+def remove_pages_without_tables(page_ranges, pdf):
+    table_ranges = []
+    for rng in page_ranges:
+        for pg in rng:
+            if page_contains_table(pdf, pg):
+                table_ranges.append(pg)
+                continue
+    return sequential_ranges(table_ranges)
+
+
+def get_part3_pgs(pdf_dir, log_dir="./run_logs"):
+    run_data = []
+    print("Finding page ranges for Part III...", end=" ")
     for file in tqdm(os.listdir(pdf_dir)):
         # skip non-PDF files
         if not file.endswith(".pdf"):
@@ -300,93 +298,58 @@ def get_part3_pgs(pdf_dir):
             continue
 
         # Find the page range of Part III
-        part3_range = find_part3_range(reader)
+        part3_range = find_part3_range(reader, pdf_url)
         if not part3_range:
             continue
 
         # Remove pages that have very little text content
-        part3_range = remove_mostly_blank_pages_from_range(reader, part3_range)
-        if not part3_range:
+        # Because sometimes these types of pages are
+        part3_range_list = remove_mostly_blank_pages_from_range(reader, part3_range)
+        if not part3_range_list:
             continue
-        # part3_range is now a list of tupled ranges (start, end)
 
-        for rng in part3_range:
-            start, end = int(rng[0]), int(rng[1])
-            # Find pages containing tables
-            try:
-                table_pages = [
-                    page
-                    for page in range(start, end + 1)
-                    if page_contains_table(pdf_url, page, include_stream=True)
-                ]
-            except IndexError:
-                print(f"Error reading file {pdf_url}")
-                continue
-            if table_pages:
-                pgs.append((pdf_url, table_pages[0], table_pages[-1]))
+        part3_range_list = remove_pages_without_tables(part3_range_list, pdf_url)
+        run_data.append((pdf_url, part3_range_list))
 
-    # Create a dataframe of the page ranges
-    df = pd.DataFrame(pgs, columns=["pdf_url", "start", "end"])
-    try:
-        # Save the error pages to a separate file for manual inspection
-        df[df.start == "Error"].to_csv("error_pages.csv")
-    except Exception:
-        pass
-
-    # Remove the error pages
-    df = df[df.start != "Error"]
-    df["pages"] = df.end.astype(int) - df.start.astype(int) if start != end else 1
+    # Save the data
+    df = pd.DataFrame(run_data, columns=["file", "part3_range"])
+    df["pg_count"] = df["part3_range"].apply(lambda x: sum([len(list(y)) for y in x]))
+    df.to_csv(os.path.join(log_dir, "part3_pgs.csv"), index=False)
     return df
 
 
-def convert_pages_to_bitmap(
-    pdf_path: str, output_dir: str, page_ranges: List[Tuple[int, int]]
-) -> None:
+def convert_pages_to_bitmap(row: pd.Series, output_dir: str) -> None:
     """
     Convert specific pages from a PDF to bitmap images.
 
-    :param pdf_path: str, path to the input PDF file
+    :param row: pd.Series, contains the file path and page ranges to be converted
     :param output_dir: str, path to the directory where the output images will be saved
-    :param page_ranges: list of tuples, each tuple contains the start and end page numbers (inclusive) to be converted
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Load the PDF
-    images = pdf2image.convert_from_path(pdf_path)
-
-    # Iterate through the specified page ranges
-    for start_page, end_page in page_ranges:
-        for page_num in range(
-            start_page, end_page + 1 if start_page == end_page else end_page
-        ):
-            if (
-                0 <= page_num < len(images)
-            ):  # Check if the page number is within the valid range
-                # Save the bitmap image
-                file = pdf_path.split("/")[-1]
-                images[page_num].save(
-                    os.path.join(output_dir, f"{file}_page_{page_num + 1}.bmp"), "BMP"
-                )
-
-
-def pipe_data(pdf_dir: str = "./allpdf", output_dir: str = "./images"):
-    clean(pdf_dir)
-    print("Finding page ranges for Part III...", end=" ")
-    data = get_part3_pgs(pdf_dir)
-    data.to_csv("part3_pages.csv")
-    print("Done")
-    print("Converting pages to images...", end=" ")
-    for _, row in tqdm(data.iterrows(), total=len(data)):
-        convert_pages_to_bitmap(
-            row.pdf_url, output_dir, [(int(row.start), int(row.end))]
+    pgs = []
+    for rng in row.part3_range:
+        pgs.extend(rng)
+    images = pdf2image.convert_from_path(row.file)
+    for pg_num in pgs:
+        file = row.file.split("/")[-1]
+        images[pg_num].save(
+            os.path.join(output_dir, f"{file}_page_{pg_num + 1}.bmp"), "BMP"
         )
-    print("Done")
+
+
+def pipe_data(
+    pdf_dir: str = "./pdf", output_dir: str = "./images", log_dir: str = "./run_logs"
+):
+    clean(pdf_dir)
+    data = get_part3_pgs(pdf_dir)
+    data.to_csv(os.path.join(log_dir, "part3_pgs.csv"), index=False)
+    print("Converting pages to images...")
+    for _, row in tqdm(data.iterrows(), total=len(data)):
+        convert_pages_to_bitmap(row, output_dir)
     print(f"All done! Now we have {len(os.listdir(output_dir))} images")
 
 
 if __name__ == "__main__":
-    pipe_data()
-    removed_pgs = pd.DataFrame(
-        removed_pages_tracker, columns=["title", "author", "pg", "reason"]
-    ).to_csv("removed_pages.csv")
+    pipe_data("./test_pipeline_pdfs/", "./test_pipeline_images/", "./test_logs/")
