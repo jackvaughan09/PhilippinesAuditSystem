@@ -288,7 +288,7 @@ def find_part3_range(reader: p.PdfReader, pdf_url: str) -> range:
             return None
 
 
-def remove_pages_without_tables(page_ranges, pdf):
+def remove_pages_without_tables(page_ranges, pdf):  # -> O((n * m)^2) :/
     table_ranges = []
     for rng in page_ranges:
         for pg in rng:
