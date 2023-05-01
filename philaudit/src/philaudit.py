@@ -259,6 +259,7 @@ def find_part3_range(reader: p.PdfReader, pdf_url: str) -> range:
         pass
 
     # Edge case: part 3 starts before page 10 and pdf is longer than 50 pages
+    # Solution: locate table of contents and begin target page search from there
     if part_3_start is not None and part_3_start < 10 and end > 50:
         toc = find_toc(reader)
         rng = detect_range_from_target_page(reader, toc)
