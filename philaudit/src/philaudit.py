@@ -78,7 +78,6 @@ def text_normalize(s: str) -> str:
 def page_contains_table(
     pdf_path: str, page_num: int, include_stream: bool = False
 ) -> bool:
-    global removed_pages_tracker
     """
     Check if a specific page in a PDF file contains tables using the Camelot library.
 
