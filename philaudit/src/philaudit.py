@@ -1,14 +1,15 @@
 import os
-import pandas as pd
-import PyPDF2 as p
-from PyPDF2.errors import PdfReadError
-import pdf2image
-from tqdm import tqdm
-import camelot
-import warnings
-from typing import List
 import re
 import sys
+import warnings
+from typing import List
+
+import camelot
+import pandas as pd
+import pdf2image
+import PyPDF2 as p
+from PyPDF2.errors import PdfReadError
+from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 
