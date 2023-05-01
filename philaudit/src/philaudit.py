@@ -292,13 +292,13 @@ def remove_pages_without_tables(page_ranges, pdf):
     table_ranges = []
     for rng in page_ranges:
         for pg in rng:
-            if page_contains_table(pdf, pg):
+            if page_contains_table(pdf, pg, include_stream=True):
                 table_ranges.append(pg)
                 continue
     return sequential_ranges(table_ranges)
 
 
-def get_part3_pgs(pdf_dir, log_dir="./run_logs"):
+def get_part3_pgs(pdf_dir, log_dir):
     run_data = []
     print("Finding page ranges for Part III...", end=" ")
     for file in tqdm(os.listdir(pdf_dir)):
@@ -321,7 +321,7 @@ def get_part3_pgs(pdf_dir, log_dir="./run_logs"):
 
         # Remove pages that have very little text content
         # Because sometimes these types of pages are
-        part3_range_list = remove_mostly_blank_pages_from_range(reader, part3_range)
+        part3_range_list = remove_blank_pages_from_range(reader, part3_range)
         if not part3_range_list:
             continue
 
