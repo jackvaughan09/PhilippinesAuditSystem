@@ -44,9 +44,9 @@ BAD_NAMES = [
 
 
 def clean(directory: str) -> None:
-    """Remove duplicate files and common unwanted files from a directory.
+    """Remove duplicate files and specific unwanted files from a directory.
     Args:
-        directory (str): The directory to clean.
+        - directory (str): The directory to clean.
     """
     print(
         f"Removing unwanted files...\n\
@@ -83,11 +83,11 @@ def page_contains_table(
     Check if a specific page in a PDF file contains tables using the Camelot library.
 
     Args:
-        pdf_path (str): Path to the PDF file.
-        page_num (int): The page number to check for tables.
-        include_stream (bool): Whether to include stream tables in the check. Defaults to False.
+        - pdf_path (str): Path to the PDF file.
+        - page_num (int): The 0-index page number to check for tables.
+        - include_stream (bool): Whether to include stream tables in the check. Defaults to False.
     Returns:
-        bool: True if tables are detected, False otherwise.
+        - bool: True if tables are detected, False otherwise.
     """
     stream_tables = False
     lattice_tables = False
@@ -152,11 +152,12 @@ def remove_blank_pages_from_range(reader: p.PdfReader, page_rng: range) -> List[
     """Remove pages that are mostly blank from a page range.
 
     Args:
-        reader (p.PdfFileReader): The PDF reader object for the file.
-        page_rng (range): A tuple with the start and end page numbers.
+       - reader (p.PdfFileReader): The PDF reader object for the file.
+       - page_rng (range): A range object representing the 0-index PDF
+       pages for the target tables.
 
     Returns:
-        rng (List[range]]): A list of ranges of pages that are not mostly blank.
+       - rng (List[range]]): A list of ranges of pages that are not mostly blank.
     """
     try:
         mostly_blank = [
@@ -218,9 +219,9 @@ def find_part3_range(reader: p.PdfReader, pdf_url: str) -> range:
     """
     Heuristic model for locating the page range of Part III in an Audit report.
     Args:
-        *reader* (p.PdfReader): PyPDF2 PdfReader object for the PDF file
+        - reader: (p.PdfReader): PyPDF2 PdfReader object for the PDF file
     Returns:
-        *range*: a range representing the page range of Part III
+        - range: The 0-index range of PDF pages with target tables
                  If no Part III is found, returns None
 
     ### Description:
