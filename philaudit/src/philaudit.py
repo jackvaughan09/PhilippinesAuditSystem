@@ -173,23 +173,40 @@ def remove_blank_pages_from_range(reader: p.PdfReader, page_rng: range) -> List[
     return page_rng
 
 
+def find_toc(reader: p.PdfReader):
+    try:
+        toc_page = [
+            i
+            for i, page in enumerate(reader.pages)
+            if "table of contents" in text_normalize(page.extract_text())
+        ][0]
+    except Exception:
+        raise "No Table of Contents Found!"
+    return toc_page
+
+
 def detect_range_from_target_page(
     reader: p.PdfReader,
     start: int = 0,
 ) -> range:
-    """Detect the page range of the target page in a PDF file.
+    """Detect the page range of Part III tables from the target page.
+    Finds the first page after `start` containing a target phrase
+    (see `philaudit.TARGETS` variable).
+    If a suitable target cannot be found, return original start to
+    end of file.
 
     Args:
-        reader (p.PdfFileReader): The PDF reader object for the file.
-        start (int): The page number to start searching from.
-        pdf_url (str): The URL (Path) of the PDF file.
+       - reader (p.PdfFileReader): The PDF reader object for the file.
+       - start (int): The page number to start searching from.
+       - pdf_url (str): The URL (Path) of the PDF file.
 
     Returns:
-        rng
+       - rng (range): The 0-index range of PDF pages with target tables
     """
     target_start = start
     end = len(reader.pages)
-    for i, page in enumerate(reader.pages):
+    for i, page in enumerate(reader.pages[start:]):
+        i += start
         content = text_normalize(page.extract_text())
         if any([target for target in TARGETS if target in content]):
             target_start = i
@@ -242,7 +259,8 @@ def find_part3_range(reader: p.PdfReader, pdf_url: str) -> range:
 
     # Edge case: part 3 starts before page 10 and pdf is longer than 50 pages
     if part_3_start is not None and part_3_start < 10 and end > 50:
-        rng = detect_range_from_target_page(reader, part_3_start)
+        toc = find_toc(reader)
+        rng = detect_range_from_target_page(reader, toc)
         return rng
 
     # Best case scenario: Have p3 and p4:
