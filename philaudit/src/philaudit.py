@@ -162,7 +162,7 @@ def remove_blank_pages_from_range(reader: p.PdfReader, page_rng: range) -> List[
         mostly_blank = [
             i
             for i in page_rng
-            if len(text_normalize(reader.pages[i].extractText()).split(" ")) < 12
+            if len(text_normalize(reader.pages[i].extract_text()).split(" ")) < 2
         ]
         good_indicies = [i for i in page_rng if i not in mostly_blank]
         if len(good_indicies) == 0:
