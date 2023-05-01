@@ -148,9 +148,7 @@ def sequential_ranges(lst: List[int]) -> List[range]:
     return ranges
 
 
-def remove_mostly_blank_pages_from_range(
-    reader: p.PdfReader, page_rng: range
-) -> List[range]:
+def remove_blank_pages_from_range(reader: p.PdfReader, page_rng: range) -> List[range]:
     """Remove pages that are mostly blank from a page range.
 
     Args:
