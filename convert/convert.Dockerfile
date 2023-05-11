@@ -6,9 +6,12 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && \
     apt-get -y upgrade && \
-    apt-get -y install python3 python3-pip bash default-jre default-jdk libreoffice libreoffice-java-common && \
+    apt-get -y install python3 python3-pip bash default-jre default-jdk libreoffice libreoffice-java-common pv && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --upgrade pip
+RUN pip3 install tqdm
 
 # Create app directory 
 RUN mkdir -p /app
