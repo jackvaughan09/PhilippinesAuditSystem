@@ -22,12 +22,11 @@ local_test.sh
 test.sh
 tests/
 allpdf/
-test_pipeline*
+
 Function_testing.ipynb
 run_logs/
 testresults/
 imgpdfs/
-*test*
 pdf_by_year/
 batches/
 temp_images/
@@ -41,6 +40,7 @@ demo.py
 categorize_outputs.sh
 detect/simplePhil
 organized_outputs/
+detect/model_weights/
 
 # Distribution / packaging
 .Python
