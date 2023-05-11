@@ -1,78 +1,60 @@
 import os
 import re
-import sys
+import shutil
 import warnings
-from typing import List
+from typing import List, Union
 
 import camelot
+import fitz
 import pandas as pd
 import pdf2image
 import PyPDF2 as p
 from PyPDF2.errors import PdfReadError
+from tabulate import tabulate
 from tqdm import tqdm
 
 warnings.filterwarnings("ignore")
 
-FILENAME_TARGET = ["Status", "Audit"]
 TARGETS = [
     "status of implementation of prior years’ audit recommendations",
     "status of implementation of prior year's audit recommendations",
     "status of implementation of prior year’s recommendations",
     "status of implementation of prior years’ audit recommendation",
     "status of implementation of prior years’ recommendations",
+    "status of implementation of prior year audit recommendations",
+    "status of prior year’s recommendations",
+    "status of implementation of prior years’ audit recommendati ons",
+    "status of implementation of prior year’s audit recommendations",
+    "status of implementation for prior year’s recommendations",
+    "status of implementation of prior year’s audit recommendat ions",
+    "status of implementation of prior years ’ audit recommendations",
+    "status of implementation of prior years’saudit recommendations",
 ]
-CANON_HEADERS = [
-    "audit observation",
-    "recommendations",
-    "references",
-    "status of implementation",
-    "reasons for partial/non-implementation",
-    "management action",
+ANNEXES = ["annex", "annexes", "a n n e x", "a n n e x e s"]
+# "annex" and "annexes" are too general to be used as p4 indicators reliably.
+PART_4_INDICATORS = [
+    "part iv",
+    "iv. annex",
+    "a n n e x e s",
+    "annexes",
+    "pa rt iv",
+    "p art iv",
+    "part i v",
+    "part i v.",
+    "part iv.",
+    "part iv. annex",
 ]
-FILTER_COLUMNS = [
-    "references",
-    "status of implementation",
-]
-BAD_NAMES = [
-    ".docx",
-    ".doc",
-    "Part-1",
-    "Certificate",
-    "Part1",
-    "Independent",
-    "Part 1",
-]
-
-
-def clean(directory: str) -> None:
-    """Remove duplicate files and specific unwanted files from a directory.
-    Args:
-        - directory (str): The directory to clean.
-    """
-    print(
-        f"Removing unwanted files...\n\
-    Current file count: {len(os.listdir(directory))}"
-    )
-    seen = set()
-    for filename in tqdm(os.listdir(directory)):
-        if filename not in seen:
-            seen.add(filename)
-        else:  # duplicate file
-            print("duplicate file: " + filename)
-            os.remove(os.path.join(directory, filename))
-            continue
-
-        if any(bad_name in filename for bad_name in BAD_NAMES):
-            os.remove(os.path.join(directory, filename))
-    print(f"Now there are: {len(os.listdir(directory))} files")
 
 
 def text_normalize(s: str) -> str:
-    # s = s.replace("\n", " ").replace("’", "'")
-    s = re.sub(r"\s+", " ", s)
-    s = re.sub(r"([a-z])([A-Z])([a-z])", r"\1 \2\3", s)
-    s = re.sub(r"([:,;.])(?!\s)", r"\1 ", s)
-    s = s.lower().strip()
+    s = re.sub(r"\s+", " ", s)  # ensure single spaces
+    s = re.sub(r"([a-z])([A-Z])([a-z])", r"\1 \2\3", s)  # split camelCase
+    s = re.sub(r"([:,;.])(?!\s)", r"\1 ", s)  # add space after punctuation
+    s = s.lower().strip()  # lowercase and strip
+    pattern_iii = r"(?<![a-zA-Z])i *i *i(?![a-zA-Z])"
+    s = re.sub(pattern_iii, "iii", s)  # fix roman numeral iii
+    pattern_iv = r"(?<![a-zA-Z])i *v(?![a-zA-Z])"
+    s = re.sub(pattern_iv, "iv", s)  # fix roman numeral iv
     return s
 
 
@@ -89,207 +71,90 @@ def page_contains_table(
     Returns:
         - bool: True if tables are detected, False otherwise.
     """
-    stream_tables = False
-    lattice_tables = False
     page_num += 1  # camelot is 1-indexed
-    try:
-        if len(camelot.read_pdf(pdf_path, flavor="lattice", pages=str(page_num))) > 0:
+    if len(camelot.read_pdf(pdf_path, flavor="lattice", pages=str(page_num))) > 0:
+        return True
+    if include_stream == True:
+        tables = camelot.read_pdf(pdf_path, flavor="stream", pages=str(page_num))
+        if len(tables) > 0:
             return True
-    except IndexError:
-        return False
-    except Exception:
-        print(f"Error reading file {pdf_path} page {page_num} with lattice flavor")
-        return False
-
-    # TODO: skip stream tables for now, they are not as accurate
-    # need to remove pages that only have the part 3 thing on it [MOSTLY DONE]
-    # and pages that have no text content before trying to apply stream [DONE]
-
-    if (not lattice_tables) and (include_stream == True):
-        try:
-            if (
-                len(
-                    camelot.read_pdf(
-                        pdf_path,
-                        flavor="stream",
-                        pages=str(page_num),
-                    )
-                )
-                > 0
-            ):
-                return True
-        except Exception:
-            print(f"Error reading file {pdf_path} page {page_num} with stream flavor")
-            return False
-
-    if not stream_tables and not lattice_tables:
-        return False
+    return False
 
 
 def sequential_ranges(lst: List[int]) -> List[range]:
     if not lst:
         return []
-
     lst.sort()  # Make sure the list is sorted
     ranges = []
     start = lst[0]
     end = lst[0]
     i = 1
-
-    while i < len(lst):  # Use < instead of <= to avoid IndexError
+    while i < len(lst):
         if lst[i] - 1 != lst[i - 1]:
             end = lst[i - 1]  # Set end to the last element of the current range
             ranges.append(range(start, end + 1))
             start = lst[i]  # Update start to the new range's first element
         i += 1
-
     ranges.append(range(start, lst[-1] + 1))  # Append the last range
-
     return ranges
 
 
-def remove_blank_pages_from_range(reader: p.PdfReader, page_rng: range) -> List[range]:
+def find_toc(reader: p.PdfReader):
+    for i, page in enumerate(reader.pages):
+        if "table of contents" in text_normalize(page.extract_text()):
+            toc_page = i
+            return toc_page
+    return None
+
+
+def clean_pg_content(reader, i):
+    return text_normalize(reader.pages[i].extract_text())
+
+
+def remove_cover_pages_from_range(reader: p.PdfReader, page_rng: range) -> range:
+    i = page_rng[0]
+    while (
+        any([target in clean_pg_content(reader, i) for target in TARGETS])
+        and len(clean_pg_content(reader, i)) < 75
+    ):
+        i += 1
+    new_range = range(i, page_rng[-1] + 1)
+    return new_range
+
+
+def remove_annex_pages_from_end_of_range(reader: p.PdfReader, page_rng: range) -> range:
+    # starting from end of range
+    i = page_rng[-1]
+    while any([a for a in ANNEXES if a in clean_pg_content(reader, i)]):
+        i -= 1
+    return range(page_rng[0], i + 1)
+
+
+def remove_blank_pages_from_range(
+    pdf: str, reader: p.PdfReader, page_rng: range
+) -> List[range]:
     """Remove pages that are mostly blank from a page range.
 
     Args:
+       - pdf (str): The local path to the PDF file.
        - reader (p.PdfFileReader): The PDF reader object for the file.
        - page_rng (range): A range object representing the 0-index PDF
        pages for the target tables.
 
     Returns:
-       - rng (List[range]]): A list of ranges of pages that are not mostly blank.
+       - rng (List[range]]): A list of ranges of pages that are not blank.
     """
-    try:
-        mostly_blank = [
-            i
-            for i in page_rng
-            if len(text_normalize(reader.pages[i].extract_text()).split(" ")) < 2
-        ]
-        good_indicies = [i for i in page_rng if i not in mostly_blank]
-        if len(good_indicies) == 0:
-            return None
-        page_rng = sequential_ranges(good_indicies)
-    except Exception as e:
-        print(e)
+    blank = [i for i in page_rng if len(clean_pg_content(reader, i).split(" ")) < 3]
+    blank = [i for i in blank if not page_contains_table(pdf, i)]
+    good_indicies = [i for i in page_rng if i not in blank]
+    if len(good_indicies) == 0:
+        return None
+    # Condense the list to range objects with sequential pages
+    page_rng = sequential_ranges(good_indicies)
     return page_rng
 
 
-def find_toc(reader: p.PdfReader):
-    try:
-        toc_page = [
-            i
-            for i, page in enumerate(reader.pages)
-            if "table of contents" in text_normalize(page.extract_text())
-        ][0]
-    except Exception:
-        raise "No Table of Contents Found!"
-    return toc_page
-
-
-def detect_range_from_target_page(
-    reader: p.PdfReader,
-    start: int = 0,
-) -> range:
-    """Detect the page range of Part III tables from the target page.
-    Finds the first page after `start` containing a target phrase
-    (see `philaudit.TARGETS` variable).
-    If a suitable target cannot be found, return original start to
-    end of file.
-
-    Args:
-       - reader (p.PdfFileReader): The PDF reader object for the file.
-       - start (int): The page number to start searching from.
-       - pdf_url (str): The URL (Path) of the PDF file.
-
-    Returns:
-       - rng (range): The 0-index range of PDF pages with target tables
-    """
-    target_start = start
-    end = len(reader.pages)
-    for i, page in enumerate(reader.pages[start:]):
-        i += start
-        content = text_normalize(page.extract_text())
-        if any([target for target in TARGETS if target in content]):
-            target_start = i
-            return range(target_start, end)
-    return range(target_start, end)
-
-
-def find_part3_range(reader: p.PdfReader, pdf_url: str) -> range:
-    """
-    Heuristic model for locating the page range of Part III in an Audit report.
-    Args:
-        - reader: (p.PdfReader): PyPDF2 PdfReader object for the PDF file
-    Returns:
-        - range: The 0-index range of PDF pages with target tables
-                 If no Part III is found, returns None
-
-    ### Description:
-    - Worst case: if there is no Part III and no target page, return None
-    - if there is no Part III, attempt target page detection
-    - if there is Part III but no Part IV, return Part III to end
-    - if both Part III and Part IV are present, return Part III to Part IV
-    """
-    contains_piii = []
-    contains_piv = []
-
-    for i, pg in enumerate(reader.pages):
-        content = text_normalize(pg.extract_text())
-        if "part iii" in content:
-            contains_piii.append(i)
-        if "part iv" in content:
-            contains_piv.append(i)
-
-    end = len(reader.pages)
-
-    # Attempt to assign part 3 start and part 4 start
-    try:
-        part_3_start = int(contains_piii[-1])
-        # When p3 is not the first page, we have to figure out if the start contains
-        # a table to decide whether to include it or not
-        if not page_contains_table(pdf_url, part_3_start):
-            part_3_start += 1
-    except IndexError:
-        part_3_start = None
-        pass
-    try:
-        part_4_start = int(contains_piv[-1])
-    except IndexError:
-        part_4_start = None
-        pass
-
-    # Edge case: part 3 starts before page 10 and pdf is longer than 50 pages
-    # Solution: locate table of contents and begin target page search from there
-    if part_3_start is not None and part_3_start < 10 and end > 50:
-        toc = find_toc(reader)
-        rng = detect_range_from_target_page(reader, toc)
-        return rng
-
-    # Best case scenario: Have p3 and p4:
-    if part_3_start is not None and part_4_start is not None:
-        # if p4 comes before p3, return p3 to end
-        if part_3_start > part_4_start:
-            rng = range(part_3_start, end)
-            return rng
-        else:
-            rng = range(part_3_start, part_4_start)
-            return rng
-
-    # If only p3 is present, return p3 to end
-    if part_3_start is not None and part_4_start is None:
-        rng = range(part_3_start, end)
-        return rng
-
-    # If no p3 or p4, attempt target page detection
-    if part_3_start is None and part_4_start is None:
-        try:
-            rng = detect_range_from_target_page(reader)
-            return rng
-        except Exception:
-            return None
-
-
-def remove_pages_without_tables(page_ranges, pdf):  # -> O((n * m)^2) :/
+def remove_pages_without_tables(pdf, page_ranges):  # TODO is there something faster?
     table_ranges = []
     for rng in page_ranges:
         for pg in rng:
@@ -299,7 +164,86 @@ def remove_pages_without_tables(page_ranges, pdf):  # -> O((n * m)^2) :/
     return sequential_ranges(table_ranges)
 
 
-def get_part3_pgs(pdf_dir, log_dir):
+def detect_range_from_target_page(
+    pdf: str,
+    reader: p.PdfReader,
+    start: int = 0,
+    end: int = None,
+) -> range:
+    """Detect the page range of Part III tables from the target page.
+    Finds the first page after `start` containing a target phrase
+    (see `philaudit.TARGETS` variable).
+    If a suitable target cannot be found, return original start to
+    end of file.
+
+    Args:
+       - pdf (str): The path to the PDF to be read
+       - reader (p.PdfFileReader): The PDF reader object for the file.
+       - start (int): The 0-index page number to start searching from.
+       - end (int): The 0-index page number to stop searching at.
+    Returns:
+       - rng (range): The 0-index range of PDF pages with target tables
+    """
+    target_start = start
+    if not end:
+        end = len(reader.pages)
+
+    for i, page in enumerate(reader.pages[start:end]):
+        i += start  # adjust for start
+        content = text_normalize(page.extract_text())
+        if any([target in content for target in TARGETS]):
+            target_start = i
+            if not page_contains_table(pdf, i):
+                target_start += 1
+                return range(target_start, end)
+            else:
+                return range(target_start, end)
+    return range(target_start, end)
+
+
+def assign_start_end_pages(reader):
+    toc = find_toc(reader)
+    if toc:
+        start = toc + 1
+        while any([x in clean_pg_content(reader, start) for x in PART_4_INDICATORS]):
+            start += 1
+    else:
+        start = 0
+    end = find_part4_start(reader, start)
+    return start, end
+
+
+def find_part4_start(reader: p.PdfReader, start) -> Union[int, None]:
+    """
+    Finds the starting page index of Part 4 in a PDF document,
+    based on a list of predefined indicators.
+    Args:
+        - reader (PdfReader): A PyPDF2 PdfReader instance containing the
+        pages of the PDF document.
+
+    Returns:
+        - int: The page index of the start of Part 4 in the document
+        if found, otherwise None.
+
+    Example:
+        # Assuming the PDF file has been initialized as a PdfReader instance
+
+        `part4_start = find_part4_start(pdf_reader)`
+    """
+    contains_piv = []
+    for i, pg in enumerate(reader.pages[start:]):
+        i += start  # account for start
+        content = text_normalize(pg.extract_text())
+        if any([x in content for x in PART_4_INDICATORS]):
+            contains_piv.append(i)
+    if len(contains_piv) > 0:
+        # contains_piv = remove_sequences(contains_piv)
+        return contains_piv[-1]
+    else:
+        return None
+
+
+def get_part3_pgs(pdf_dir):
     run_data = []
     print("Finding page ranges for Part III...", end=" ")
     for file in tqdm(os.listdir(pdf_dir)):
@@ -308,31 +252,29 @@ def get_part3_pgs(pdf_dir, log_dir):
             continue
 
         # attempt to read the PDF
-        pdf_url = os.path.join(pdf_dir, file)
+        pdf = os.path.join(pdf_dir, file)
         try:
-            reader = p.PdfReader(pdf_url)
+            reader = p.PdfReader(pdf)
         except PdfReadError as e:
-            print(f"Error reading file {pdf_url}: {e}")
+            print(f"Error reading file {pdf}: {e}")
             continue
-
-        # Find the page range of Part III
-        part3_range = find_part3_range(reader, pdf_url)
-        if not part3_range:
+        try:
+            start, end = assign_start_end_pages(reader)
+            part3_rng = detect_range_from_target_page(pdf, reader, start, end)
+            part3_rng = remove_high_image_area_pages(pdf, part3_rng)
+            part3_rng = remove_annex_pages_from_end_of_range(reader, part3_rng)
+            part3_rng = remove_cover_pages_from_range(reader, part3_rng)
+            page_ranges = remove_blank_pages_from_range(pdf, reader, part3_rng)
+            page_ranges = remove_pages_without_tables(
+                pdf, page_ranges
+            )  # <-- Would love a faster way to do this...
+        except Exception as e:
+            run_data.append((pdf, ["Error:", e]))
             continue
-
-        # Remove pages that have very little text content
-        # Because sometimes these types of pages are
-        part3_range_list = remove_blank_pages_from_range(reader, part3_range)
-        if not part3_range_list:
-            continue
-
-        part3_range_list = remove_pages_without_tables(part3_range_list, pdf_url)
-        run_data.append((pdf_url, part3_range_list))
+        run_data.append((pdf, page_ranges))
 
     # Save the data
     df = pd.DataFrame(run_data, columns=["file", "part3_range"])
-    df["pg_count"] = df["part3_range"].apply(lambda x: sum([len(list(y)) for y in x]))
-    df.to_csv(os.path.join(log_dir, "part3_pgs.csv"), index=False)
     return df
 
 
@@ -357,17 +299,114 @@ def convert_pages_to_bitmap(row: pd.Series, output_dir: str) -> None:
         )
 
 
+def image_area_ratio(page: fitz.Page) -> float:
+    image_area = 0.0
+    for img_info in page.get_image_info():
+        bbox = img_info["bbox"]
+        area = abs(bbox[2] - bbox[0]) * abs(bbox[3] - bbox[1])
+        image_area += area
+    return image_area / abs(page.rect)
+
+
+def remove_high_image_area_pages(
+    file_name: str, page_range: range, threshold: float = 0.5
+) -> range:
+    try:
+        doc = fitz.open(file_name)
+        i = page_range[-1]
+        while image_area_ratio(doc[i]) > threshold:
+            i -= 1
+        doc.close()
+        return range(page_range[0], i + 1)
+    except (fitz.FileDataError, IndexError):
+        print(f"Error: {file_name} is broken.")
+        return None
+
+
 def pipe_data(
     pdf_dir: str = "./pdf", output_dir: str = "./images", log_dir: str = "./run_logs"
 ):
-    clean(pdf_dir)
-    data = get_part3_pgs(pdf_dir)
+    # Extract part 3 pages
+    data = get_part3_pgs(pdf_dir, log_dir)
+
+    # Save out errors
+    errors = data.loc[data.part3_range.str.contains("Error")]
+    errors.to_csv(os.path.join(log_dir, "errors.csv"), index=False)
+
+    # Remove errors and save out data
+    data = data.loc[~data.part3_range.str.contains("Error")]
+    data = data.reset_index(drop=True)
     data.to_csv(os.path.join(log_dir, "part3_pgs.csv"), index=False)
+
+    # Pipe the data to images
     print("Converting pages to images...")
     for _, row in tqdm(data.iterrows(), total=len(data)):
         convert_pages_to_bitmap(row, output_dir)
     print(f"All done! Now we have {len(os.listdir(output_dir))} images")
 
 
-if __name__ == "__main__":
-    pipe_data("./test_pipeline_pdfs/", "./test_pipeline_images/", "./test_logs/")
+def get_pdf_image_area_ratio(file_name: str) -> float:
+    """
+    Calculate the ratio of the total image area to the total page area for a given PDF file.
+
+    Args:
+        - file_name (str): The path to the PDF file.
+
+    Returns:
+    float: The ratio of the total image area to the total page area. If the file cannot be opened,
+    a value of 0.0 is returned.
+    """
+    total_page_area = 0.0
+    total_image_area = 0.0
+
+    try:
+        doc = fitz.open(file_name)
+    except fitz.FileDataError:
+        print(f"Error: {file_name} is broken.")
+        return 0.0
+
+    for _, page in enumerate(doc):
+        total_page_area += abs(page.rect)
+        image_area = 0.0
+        for img_info in page.get_image_info():
+            bbox = img_info["bbox"]
+            area = abs(bbox[2] - bbox[0]) * abs(bbox[3] - bbox[1])
+            image_area += area
+        total_image_area += image_area
+    doc.close()
+    return total_image_area / total_page_area
+
+
+def isolate_high_image_area_ratio_pdfs(
+    directory: str, to: str, threshold: float = 0.45
+):
+    """
+    Isolate PDF files from a directory based on a given image area ratio threshold.
+
+    Args:
+    - directory (str): The path to the directory containing the PDF files.
+    - to (str): The path to the destination directory where the PDF files with a high image area ratio will be moved.
+    - threshold (float, optional): The image area ratio threshold. Files with an image area ratio greater than the threshold will be moved to the specified destination. Defaults to 0.45.
+
+    Returns:
+    None. PDF files with an image area ratio greater than the threshold are moved to the destination directory.
+    """
+    if not os.path.exists(directory) or not os.path.isdir(directory):
+        print(
+            f"The specified directory '{directory}' does not exist or is not a directory."
+        )
+        return
+    data = []
+    headers = ["File Name", "Image Area Ratio"]
+    for file_name in tqdm([f for f in os.listdir(directory) if f.endswith(".pdf")]):
+        file_path = os.path.join(directory, file_name)
+        if file_name.endswith(".pdf"):
+            image_area_ratio = get_pdf_image_area_ratio(file_path)
+            if image_area_ratio > threshold:
+                data.append([file_name, image_area_ratio])
+                shutil.move(file_path, to, file_name)
+    print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+# if __name__ == "__main__":
+#     pipe_data("./pdf/", "./images/", "./output/")
