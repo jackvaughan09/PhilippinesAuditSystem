@@ -15,6 +15,7 @@ zips
 *extracted*
 pdf/
 images/
+auditzips/
 
 # Local stuff from Jack
 local_test.sh
@@ -27,7 +28,19 @@ run_logs/
 testresults/
 imgpdfs/
 *test*
-
+pdf_by_year/
+batches/
+temp_images/
+target_page_detection/
+detect/training_data/
+detect/tb_logs/
+tb_data/
+old/
+loadzips.sh
+demo.py
+categorize_outputs.sh
+detect/simplePhil
+organized_outputs/
 
 # Distribution / packaging
 .Python
