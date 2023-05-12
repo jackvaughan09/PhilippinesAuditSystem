@@ -27,7 +27,7 @@ test_cases = {
     "alcoy2013": [range(30, 40)],  # no cover page long document form
     "alegria2013": [range(36, 42)],  # exclude cover page long document form
     "batan2013": [range(44, 46)],  # exclude cover page + last page
-    "dagohoy2013": [range(70, 80)],  # ToC target pg detect TODO: fix
+    "dagohoy2013": [range(70, 80)],  # ToC target pg detect
     "banayoyo2013": [range(37, 42)],  # exclude cover page + blank page
     "licuanbaay2011": [  # very broken ranges (blank pages)
         range(45, 48),
@@ -35,7 +35,6 @@ test_cases = {
         range(53, 55),
         range(56, 61),
     ],
-    # ---
     "penarrubia2012": [range(41, 46)],
     "sabangan2016": [range(48, 52)],
     "tadian2016": [range(47, 53)],
@@ -62,7 +61,6 @@ test_cases = {
     "paracelis2016": [range(56, 61)],  # only one page??
     "atok2019": [range(76, 93)],
     "pidigan2011": [range(47, 55)],  # only page 57...?
-    # --- Currently Testing
     "kabayan2019": [range(91, 115)],  # only one page
     "dolores2020": [range(121, 139)],  # whole doc
     "natonin2013": [range(26, 29)],
@@ -71,7 +69,7 @@ test_cases = {
     "dolores2018": [range(129, 147)],  # converted whole doc!
     "aguinaldo2019": [range(51, 59)],  # need to detect annex page as end of part3
     "bangued2011": [range(71, 82)],  # need to detect annex page as end of part3
-    "calanasan2019": [range(47, 56)],  #
+    "calanasan2019": [range(47, 56)],
     # ================================================================================
     # Short/Individual document formats
     # --- Tested and passed
