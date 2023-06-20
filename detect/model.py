@@ -11,7 +11,7 @@ class PhilTableDetection(pl.LightningModule):
         self,
         num_classes=1,
         learning_rate=1e-4,
-        weight_decay=0,
+        weight_decay=0.0001,
         dropout_rate=0,
         num_filters1=16,
         num_filters2=32,
