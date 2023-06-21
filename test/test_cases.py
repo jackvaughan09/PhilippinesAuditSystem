@@ -1,4 +1,3 @@
-import os
 import re
 
 
@@ -12,11 +11,6 @@ def extract_basename(file_name: str) -> str:
         return match.group(2)
     else:
         raise ValueError(f"Invalid file name format: {file_name}")
-
-
-def _generate_blank_test_cases():
-    for file in [f for f in os.listdir("./pdf/") if f.endswith(".pdf")]:
-        yield (extract_basename(file), [range()])
 
 
 test_cases = {
