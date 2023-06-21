@@ -17,6 +17,8 @@ pdf/
 images/
 auditzips/
 
+testingpackage/*
+
 # Local stuff from Jack
 local_test.sh
 test.sh
