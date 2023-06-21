@@ -1,9 +1,22 @@
 import numpy as np
-from model import PhilTableDetection
-from transforms import DEFAULT_TRANSFORMS
+
+from .model import PhilTableDetection
+from .transforms import DEFAULT_TRANSFORMS
 
 
 class Detector:
+    """
+    A wrapper for the PhilTableDetection model that handles loading the model,
+    transforming the input image, and returning the prediction.
+    Example:
+    ```
+    from philaudit.detect.detector import Detector
+    model_weights = "path/to/model/weights.ckpt"
+    my_detector = Detector(model_weights)
+    prediction = my_detector.detect(image)
+    ```
+    """
+
     def __init__(self, model_weights):
         self.model = self._load_model(model_weights)
         self.transforms = DEFAULT_TRANSFORMS

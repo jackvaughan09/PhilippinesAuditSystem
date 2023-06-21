@@ -4,9 +4,9 @@ import optuna
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 
+from philaudit.detect.callbacks import get_callbacks
 from philaudit.detect.datamodule import PhilDataModule
 from philaudit.detect.model import PhilTableDetection
-from philaudit.detect.callbacks import get_callbacks
 from philaudit.detect.transforms import DEFAULT_TRANSFORMS
 
 # Use the following line during tensor core GPU training

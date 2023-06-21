@@ -1,11 +1,13 @@
-import torch
-from philaudit.detect.transforms import default_transforms
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.datasets import ImageFolder
-import pytorch_lightning as pl
 from typing import Union
+
 import albumentations as album
 import numpy as np
+import pytorch_lightning as pl
+import torch
+from torch.utils.data import DataLoader, Dataset, random_split
+from torchvision.datasets import ImageFolder
+
+from .transforms import default_transforms
 
 
 # Implementing a custom dataset with a __getitem__ method allows us to apply
