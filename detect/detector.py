@@ -8,8 +8,6 @@ from albumentations.pytorch.transforms import ToTensorV2
 from detect.model import PhilTableDetection
 from detect.phildata import EnsureLandscape
 
-MODEL_PATH = "./checkpoints"
-
 
 class Detector:
     def __init__(self, model_path):
