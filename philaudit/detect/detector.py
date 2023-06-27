@@ -18,11 +18,11 @@ class Detector:
     """
 
     def __init__(self, model_weights):
-        self.model = self._load_model(model_weights)
-        self.transforms = DEFAULT_TRANSFORMS
         self.map_location = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
+        self.model = self._load_model(model_weights)
+        self.transforms = DEFAULT_TRANSFORMS
 
     def detect(self, image):
         image = self._transform(image, self.transforms)
