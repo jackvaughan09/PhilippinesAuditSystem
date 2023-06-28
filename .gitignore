@@ -18,11 +18,14 @@ images/
 auditzips/
 tb_logs/
 testingpackage/*
-
+rulebased/
 val_loss.png
 val_prec.png
 weewoo.py
 weights.ckpt
+testingtesting.ipynb
+req.txt
+datadisarray.png
 
 # Local stuff from Jack
 local_test.sh
