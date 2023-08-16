@@ -17,7 +17,7 @@ RUN pip3 install tqdm
 RUN mkdir -p /app
 WORKDIR /app
 
-COPY convert/* /app/
+COPY convert_2/* /app/
 
 # Add execution permission to conversion script
 RUN chmod +x convert.sh

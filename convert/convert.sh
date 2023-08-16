@@ -1,34 +1,32 @@
 #!/bin/bash
-create_pdf_directory() {
-  if [ ! -d "pdf" ]; then
-    mkdir pdf
-  fi
-}
-
 unzip_and_locate_target_files() {
   echo "Unzipping and locating target files..."
-  python3 clean.py zips pdf
+  python3 clean.py /app/data
   echo "Done!"
 }
 
+process_files2() {
+  find /app/data -type f \( -name "*.doc" -o -name "*.docx" \) -print0 | while IFS= read -r -d '' f; do
+    echo "Processing: $f"
+  done
+}
+
+
 process_files() {
-  total_files=$(ls pdf/* | wc -l)
+  total_files=$(find /app/data -type f \( -name "*.doc" -o -name "*.docx" \) | wc -l)
   processed_files=0
 
-  for f in pdf/*; do
+  find /app/data -type f \( -name "*.doc" -o -name "*.docx" \) -print0 | while IFS= read -r -d '' f; do
     filename="$(basename "$f")"
     pdf_file="$(echo "$filename" | sed 's/\.[^.]*$/.pdf/')"
-    if [ -f "pdf/$pdf_file" ]; then
-      # echo "PDF version already exists: $pdf_file"
-      continue
+    pdf_path="$(dirname "$f")/$pdf_file"
+    if [ -f "$pdf_path" ]; then
+      # Remove the existing PDF if you want to convert again
+      rm "$pdf_path"
     fi
-    if [ "$(head -c 4 "$f")" = "%PDF" ]; then
-      # echo "PDF detected, moving to pdf directory"
-      mv "$f" "pdf/$pdf_file"
-      continue
-    fi
-    # echo "Converting: $f"
-    libreoffice --headless --convert-to pdf --outdir pdf "$f"
+
+    # Converting
+    libreoffice --headless --convert-to pdf --outdir "$(dirname "$f")" "$f"
     rm "$f"
 
     processed_files=$((processed_files + 1))
@@ -37,20 +35,9 @@ process_files() {
 }
 
 
-cleanup() {
-  # remove any files that are not pdfs
-  for f in pdf/*; do
-    if [ "$(head -c 4 "$f")" != "%PDF" ]; then
-      rm "$f"
-    fi
-  done
-}
-
 main() {
-  create_pdf_directory
   unzip_and_locate_target_files
   process_files
-  cleanup
 }
 
 main
