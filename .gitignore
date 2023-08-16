@@ -8,24 +8,13 @@ __pycache__/
 *.DS_Store
 
 # Data files
-data/
-extracted/
-tests/.testenv/ I didn't like that noise
-zips
-*extracted*
-pdf/
-images/
-auditzips/
 tb_logs/
-testingpackage/*
 rulebased/
-val_loss.png
-val_prec.png
-weewoo.py
-weights.ckpt
-testingtesting.ipynb
-req.txt
-datadisarray.png
+.vscode
+model_weights/
+camelots_return.ipynb
+model_1_testing.csv
+
 
 # Local stuff from Jack
 local_test.sh
