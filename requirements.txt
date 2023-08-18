@@ -61,7 +61,6 @@ parso==0.8.3
 pdf2image==1.16.3
 pdfminer.six==20221105
 pexpect==4.8.0
--e git+ssh://git@github.com/jackvaughan09/PhilippinesAuditSystem.git@6a6823f053dc2d41fd9fca29f51e09c23601cf86#egg=philaudit&subdirectory=philaudit
 pickleshare==0.7.5
 Pillow==9.5.0
 platformdirs==3.8.0
