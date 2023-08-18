@@ -8,38 +8,11 @@ __pycache__/
 *.DS_Store
 
 # Data files
-tb_logs/
-rulebased/
 .vscode
 model_weights/
-camelots_return.ipynb
 model_1_testing.csv
-
-
-# Local stuff from Jack
-local_test.sh
-test.sh
-tests/
-allpdf/
-
-Function_testing.ipynb
-run_logs/
-testresults/
-imgpdfs/
-pdf_by_year/
-batches/
-temp_images/
-target_page_detection/
-detect/training_data/
-detect/tb_logs/
 tb_data/
-old/
-loadzips.sh
-demo.py
-categorize_outputs.sh
-detect/simplePhil
-organized_outputs/
-detect/model_weights/
+r.py
 
 # Distribution / packaging
 .Python
