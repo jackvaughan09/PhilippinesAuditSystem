@@ -1,7 +1,7 @@
 import logging
+import re
 
 import pandas as pd
-import re
 
 
 class DocumentTable:
@@ -20,7 +20,9 @@ class DocumentTable:
         return pd.concat([table.df for table in self.table_list], ignore_index=True)
 
     def _data_in_headers(self, headers) -> bool:
-        return any([h for h in headers if len(str(h)) > 83])
+        return any(
+            [h for h in headers if len(str(h)) > 83]
+        )  # NOTE: hard coded value 83 is an estimate
 
     def _set_headers(self) -> list:
         headers = self._doctable.iloc[0].to_list()
@@ -107,7 +109,7 @@ def is_distinct_audit(string):
     if it is found.
 
     Note: This is not a perfect solution, as some of the observations do not follow
-    this pattern. However, it better than nothing.
+    this pattern. However, it's pretty amazing how well it works.
 
     Parameters
     ----------

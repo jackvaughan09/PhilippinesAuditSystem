@@ -89,7 +89,7 @@ def extract_data(df, out):
 
 def main():
     root = sys.argv[1]  # Should be a year directory from within PhilAuditStorage
-    year = Path(root).name  # PhilAuditStorage/Year
+    year = Path(root).name  # PhilAuditStorage/Year --> Year
     metadata_path = Path(root).parent.absolute() / "Metadata"
     metadata_file = metadata_path / f"{year}_metadata.csv"
 
