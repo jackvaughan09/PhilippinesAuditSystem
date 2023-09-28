@@ -15,9 +15,9 @@ def sort_images(all, include, exclude, detector):
             image = Image.open(image_path)
             prediction = detector.detect(image)
         if prediction == 1:
-            shutil.copy(image_path, include)
+            shutil.move(image_path, include)
         else:
-            shutil.copy(image_path, exclude)
+            shutil.move(image_path, exclude)
 
 
 def main():
