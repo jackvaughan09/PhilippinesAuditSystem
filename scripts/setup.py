@@ -56,7 +56,7 @@ if not os.path.exists("./.venv"):
 
     # activate the virtual environment
     if sys.platform == "darwin":
-        subprocess.run([".venv\\Scripts\\activate.bat"])
+        subprocess.run(["source", ".venv/bin/activate"])
     elif sys.platform == "linux":
         subprocess.run(["source", ".venv/bin/activate"])
     elif "win" in sys.platform:
