@@ -62,7 +62,10 @@ if len(sys.argv) > 1:
 if not os.path.exists("./.venv"):
     print("Building virtual environment...")
     # Create virtual environment
-    subprocess.run(["python3", "-m", "venv", "./.venv"])
+    if sys.platform in ["darwin", "linux"]:
+        subprocess.run(["python3", "-m", "venv", "./.venv"])
+    else:
+        subprocess.run(["python", "-m", "venv", ".\\.venv"])
 
     # Activate the virtual environment and install dependencies
     activate_cmd = (
@@ -82,6 +85,9 @@ if not os.path.exists("./.venv"):
     subprocess.run(["pip", "install", "-r", "requirements.txt"])
 
     # Install philaudit package
-    subprocess.run(["pip", "install", "-e", "./philaudit"])
+    if sys.platform in ["darwin", "linux"]:
+        subprocess.run(["pip", "install", "-e", "./philaudit"])
+    else:
+        subprocess.run(["pip", "install", "-e", ".\\philaudit"])
     print("Done!", end="\n")
     print("Done creating venv.")
