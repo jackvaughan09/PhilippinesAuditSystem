@@ -19,7 +19,7 @@ Raw data (.zip file reports) for the project can be found on the [Republic of Ph
 - Download [PhilAuditStorage](https://drive.google.com/drive/folders/1zu_lqh7zdRF4CUtX18iJmJUIAE9DZVkI?usp=drive_link) — public drive where converted, organized data is kept.
   - Take note of the path (where you install it), it will be important later! Eg. `/Users/me/Downloads/philauditstorage`
 - Download [Model Weights](https://drive.google.com/file/d/1U6Y3EqmA5PciAt79YlpTReOYkxrsP4ZW/view?usp=drive_link)
-- As much local device space as you can afford. **Each year will require ~50GBs on their intial runs,** though that size *can be cut in half* after running model predictions and clearing the `/Image/year/All` folders.
+- As much local device space as you can afford. **Each year will require ~30GBs**
 
 ---
 
@@ -82,7 +82,7 @@ git clone https://github.com/jackvaughan09/PhilippinesAuditSystem.git
         /Users/me/PhilRepo/weights.ckpt
     ```
 
-    > During this step, images are **COPIED** from the `Images/year/All` folder into `Images/year/Include` or `Images/year/Exclude` based on the detection model predictions. We stress the *copying* because, again, this requires a significant amount of local device storage.
+    > During this step, images are **moved** from the `Images/year/All` folder into `Images/year/Include` or `Images/year/Exclude` based on the detection model predictions.
     >
 4. Manually sort predictions to obtain ground truth labels
 
