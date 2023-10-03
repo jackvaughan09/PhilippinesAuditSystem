@@ -59,7 +59,7 @@ if len(sys.argv) > 1:
     print("Done!")
 
 
-if not os.path.exists("./.venv"):
+if not any([os.path.exists("./.venv"), os.path.exists(".\\.venv")]):
     print("Building virtual environment...")
     # Create virtual environment
     if sys.platform in ["darwin", "linux"]:
@@ -91,3 +91,15 @@ if not os.path.exists("./.venv"):
         subprocess.run(["pip", "install", "-e", ".\\philaudit"])
     print("Done!", end="\n")
     print("Done creating venv.")
+else:
+    activate_cmd = (
+        "source ./.venv/bin/activate"
+        if sys.platform in ["darwin", "linux"]
+        else ".venv\\Scripts\\activate.bat"
+    )
+
+    try:
+        subprocess.run(activate_cmd, shell=True, check=True)
+    except subprocess.CalledProcessError:
+        logging.error("Failed to activate virtual environment")
+        sys.exit(1)
