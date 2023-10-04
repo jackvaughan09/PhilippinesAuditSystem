@@ -64,42 +64,31 @@ if not any([os.path.exists("./.venv"), os.path.exists(".\\.venv")]):
     # Create virtual environment
     if sys.platform in ["darwin", "linux"]:
         subprocess.run(["python3", "-m", "venv", "./.venv"])
+        subprocess.run(
+            ["./.venv/bin/python", "-m", "pip", "install", "-r", "requirements.txt"]
+        )
+        subprocess.run(
+            ["./.venv/bin/python", "-m", "pip", "install", "-e", "./philaudit"]
+        )
     else:
         subprocess.run(["python", "-m", "venv", ".\\.venv"])
+        subprocess.run(
+            [".\\.venv\\bin\\python", "-m", "pip", "install", "-r", "requirements.txt"]
+        )
+        subprocess.run(
+            [".\\.venv\\bin\\python", "-m", "pip", "install", "-e", ".\\philaudit"]
+        )
 
-    # Activate the virtual environment and install dependencies
-    activate_cmd = (
-        "source ./.venv/bin/activate"
-        if sys.platform in ["darwin", "linux"]
-        else ".venv\\Scripts\\activate.bat"
-    )
-
-    try:
-        subprocess.run(activate_cmd, shell=True, check=True)
-    except subprocess.CalledProcessError:
-        logging.error("Failed to activate virtual environment")
-        sys.exit(1)
-
-    print("\tInstalling dependencies...", end=" ")
-    # Install the requirements
-    subprocess.run(["pip", "install", "-r", "requirements.txt"])
-
-    # Install philaudit package
-    if sys.platform in ["darwin", "linux"]:
-        subprocess.run(["pip", "install", "-e", "./philaudit"])
-    else:
-        subprocess.run(["pip", "install", "-e", ".\\philaudit"])
-    print("Done!", end="\n")
     print("Done creating venv.")
-else:
+    print("Activating virtual environment...")
     activate_cmd = (
         "source ./.venv/bin/activate"
         if sys.platform in ["darwin", "linux"]
-        else ".venv\\Scripts\\activate.bat"
+        else ".\\.venv\\Scripts\\activate.bat"
     )
-
     try:
         subprocess.run(activate_cmd, shell=True, check=True)
+        print("Virtual environment activated.")
     except subprocess.CalledProcessError:
         logging.error("Failed to activate virtual environment")
         sys.exit(1)
