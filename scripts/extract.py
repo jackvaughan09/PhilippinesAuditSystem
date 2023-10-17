@@ -99,7 +99,7 @@ def main():
     # result of extract is an updated metadata file
     md = extract_data(df, out)
     print("Done! Data extracted.")
-    md.to_csv(os.path.join(metadata_path, f"{year}_metadata.csv"))
+    md.to_excel(os.path.join(metadata_path, f"{year}_metadata.xlsx"))
     print("Metadata has been updated with errors and extracted paths.")
 
 
