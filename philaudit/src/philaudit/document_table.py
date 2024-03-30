@@ -50,6 +50,9 @@ class DocumentTable:
         self._doctable.columns = [
             self.text_normalizer.normalize(headers) for headers in headers
         ]
+        self._doctable["corruption"] = ""
+        self._doctable["type"] = ""
+        self._doctable["notes"] = ""
         self._doctable = self._doctable.reset_index(drop=True)
         return self._doctable
 
