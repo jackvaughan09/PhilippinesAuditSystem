@@ -60,7 +60,7 @@ def extract_data(df, out):
         df.iterrows(),
         desc="Extracting data",
     ):
-        complete_path = os.path.join(complete_dir, f"{row.identifier[:-4]}.csv")
+        complete_path = os.path.join(complete_dir, f"{row.identifier[:-4]}.xlsx")
         if handle_existing_file(md_acc, complete_path):
             continue
 
@@ -73,7 +73,7 @@ def extract_data(df, out):
             continue
 
         try:
-            extractor.doctable.to_csv(complete_path, index=False)
+            extractor.doctable.to_excel(complete_path, index=False)
         except Exception as e:
             md_acc.append((True, e, None))
             print(f"Error with {row.document}, skipping. Lost {row.pg_count} pages.")
