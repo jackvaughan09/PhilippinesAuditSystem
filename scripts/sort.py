@@ -12,12 +12,21 @@ def sort_images(all, include, exclude, detector):
     for image in tqdm(os.listdir(all), desc="Sorting Images with AI"):
         if image.endswith(".png"):
             image_path = os.path.join(all, image)
-            image = Image.open(image_path)
-            prediction = detector.detect(image)
-        if prediction == 1:
-            shutil.move(image_path, include)
+            try:
+                with Image.open(image_path) as img:
+                    prediction = detector.detect(img)
+            except Exception as e:
+                print(f"Error opening image {image_path}: {e}")
+                prediction = (
+                    0  # Set prediction to 0 if there's an error opening the image
+                )
+
+            if prediction == 1:
+                shutil.move(image_path, include)
+            else:
+                shutil.move(image_path, exclude)
         else:
-            shutil.move(image_path, exclude)
+            continue
 
 
 def main():
