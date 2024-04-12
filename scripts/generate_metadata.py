@@ -7,11 +7,11 @@ import pandas as pd
 
 def extract_path_parts(dirpath, year):
     """
-    Extracts specific parts of the directory path related to the year, city/municipality, region, and barangay.
+    Extracts specific parts of the directory path related to the year, city/municipality, region, and province.
 
     :param dirpath: The directory path containing files.
     :param year: The year to be looked for within the path.
-    :return: A tuple containing the year, city/municipality, region, and barangay, or placeholders if not found.
+    :return: A tuple containing the year, city/municipality, region, and province, or placeholders if not found.
     """
     path_parts = dirpath.parts
     yr_idx = path_parts.index(year)
@@ -38,13 +38,13 @@ def create_document_metadata(root: str):
         dirpath = Path(dirpath)
         for filename in filenames:
             if filename.endswith((".zip", ".pdf")):
-                year, city_municipality, region, barangay = extract_path_parts(
+                year, city_municipality, region, province = extract_path_parts(
                     dirpath, year
                 )
                 path = dirpath / filename
-                data.append([filename, year, city_municipality, region, barangay, path])
+                data.append([filename, year, city_municipality, region, province, path])
 
-    cols = ["document", "year", "city_or_municipality", "region", "barangay", "path"]
+    cols = ["document", "year", "city_or_municipality", "region", "province", "path"]
     df = pd.DataFrame(data, columns=cols)
     df = create_identifiers(df)
     return df
@@ -63,10 +63,10 @@ def create_identifiers(df):
         if not row["year"] in row["document"]:
             y_tag = row["year"] + "-"
 
-        barangay = ""
-        if row.barangay != "N/A":
-            barangay = row.barangay + "_"
-        ids.append(f"{row.region}_{barangay}{y_tag}{row.document[:-4]}")
+        province = ""
+        if row.province != "N/A":
+            province = row.province + "_"
+        ids.append(f"{row.region}_{province}{y_tag}{row.document[:-4]}")
     df["identifier"] = ids
     return df
 
