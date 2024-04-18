@@ -3,6 +3,20 @@ import re
 
 import pandas as pd
 
+ADDITIONAL_COLUMNS = [
+    "corruption",
+    "type",
+    "notes",
+    "dc_name",
+    "dc_corruption",
+    "dc_type",
+    "dc_notes",
+    "arb_name",
+    "arb_corruption",
+    "arb_type",
+    "arb_notes",
+]
+
 
 class DocumentTable:
     def __init__(self, table_list: list, text_normalizer):
@@ -50,9 +64,9 @@ class DocumentTable:
         self._doctable.columns = [
             self.text_normalizer.normalize(headers) for headers in headers
         ]
-        self._doctable["corruption"] = ""
-        self._doctable["type"] = ""
-        self._doctable["notes"] = ""
+        for column in ADDITIONAL_COLUMNS:
+            self._doctable[column] = ""
+
         self._doctable = self._doctable.reset_index(drop=True)
         return self._doctable
 
