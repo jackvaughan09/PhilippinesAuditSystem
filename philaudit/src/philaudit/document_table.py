@@ -60,7 +60,7 @@ class DocumentTable:
             return None
         headers = self._set_headers()
         self._doctable = self._overflow_repair()
-        self._doctable = self._doctable.applymap(self.text_normalizer.normalize)
+        self._doctable = self._doctable.map(self.text_normalizer.normalize)
         self._doctable.columns = [
             self.text_normalizer.normalize(headers) for headers in headers
         ]
