@@ -19,7 +19,7 @@ if len(sys.argv) > 1:
     os.makedirs(os.path.join(phil_dir, "Metadata"), exist_ok=True)
 
     # Create the year directories in Extracted
-    for year in range(2011, 2021):
+    for year in range(2011, 2023):
         os.makedirs(os.path.join(phil_dir, "Extracted", str(year)), exist_ok=True)
         os.makedirs(
             os.path.join(phil_dir, "Extracted", str(year), "Complete"), exist_ok=True
@@ -41,7 +41,7 @@ if len(sys.argv) > 1:
         )
 
     # Create the year directories in Images
-    for year in range(2011, 2021):
+    for year in range(2011, 2023):
         os.makedirs(os.path.join(phil_dir, "Images", str(year)), exist_ok=True)
         os.makedirs(os.path.join(phil_dir, "Images", str(year), "All"), exist_ok=True)
         os.makedirs(
