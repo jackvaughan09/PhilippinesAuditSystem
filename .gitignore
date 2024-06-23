@@ -13,6 +13,8 @@ model_weights/
 model_1_testing.csv
 tb_data/
 r.py
+extract_logs/*
+test.ipynb
 
 # Distribution / packaging
 .Python
